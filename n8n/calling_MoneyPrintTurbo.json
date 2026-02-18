@@ -1,0 +1,1041 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "视频话题",
+        "formDescription": "输入话题，自动生成视频",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "topic"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -1460,
+        -85
+      ],
+      "id": "b43a00cb-e138-4683-84b0-6491fe99b4f8",
+      "name": "On form submission",
+      "webhookId": "876e1cf0-d23a-4470-a804-c41c81d03a9c"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-preview-04-17",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1212,
+        135
+      ],
+      "id": "51e76273-db3f-4176-bfd0-c0f7cd10a914",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G5uqC3jeJ6hj8KrN",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n    \"title\": \"标题\",\n    \"content\": \"内容\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1092,
+        135
+      ],
+      "id": "fe51f806-9411-4646-b273-1d0c5c0d4d7d",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "按照要求生成内容",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=你是一位资深自媒体运营专家兼文案策划师，深谙 YouTube Shorts 平台调性与用户心理。  \n任务：针对“{{ $('On form submission').item.json.topic }}”主题，撰写一份100–120字的短视频文案，并给出不超过10字的标题。  \n要求：  \n1. 模仿以下结构：  \n   - 【钩子】3秒内抓住注意力  \n   - 【核心要点】3个关键卖点或利益点  \n   - 【CTA】一句行动号召  \n2. 严格输出 JSON，且仅包含 title 和 content 两个字段：  \n{\n  \"title\": \"在此填入视频标题\",\n  \"content\": \"在此填入文案内容\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1240,
+        -85
+      ],
+      "id": "2fbf42f9-8496-450e-aa36-87234eb98d32",
+      "name": "生成视频内容",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1336,
+        140
+      ],
+      "id": "36b962e6-eddf-4021-97e3-4588ff4e4b0d",
+      "name": "Wait",
+      "webhookId": "038be595-d2b3-479c-9cb0-8c9c16c9977c"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Edit MoneyPrintTurboHost').item.json.MoneyPrintTurboHost }}/api/v1/tasks/{{ $json.data.task_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1556,
+        65
+      ],
+      "id": "26f0fcd5-77f9-4af4-917c-4088e9c4ae3b",
+      "name": "查询进度",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9d0ef9c9-4158-4cfe-b259-bef6752ad6fe",
+              "leftValue": "={{ $json.data.progress }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1776,
+        140
+      ],
+      "id": "0bfa4009-3b45-48c5-a017-89134cffa738",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.videos[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1996,
+        40
+      ],
+      "id": "7ada7650-e5a6-404e-ab49-93bf5b363f86",
+      "name": "下载视频",
+      "retryOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -864,
+        315
+      ],
+      "id": "966c6f36-7b12-470b-a101-a39868a2ebbf",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "# Loop over input items and add a new field called 'myNewField' to the JSON of each one\ncontent = _input.first().json.output.content .replace('\\n', ' ')\ntitle = _input.first().json.output.title .replace('\\n', ' ')\nreturn {\"content\": content, \"title\": title}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -864,
+        -85
+      ],
+      "id": "4d0b8f92-fd2b-4ca2-b506-ec69de6183b7",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "url": "=https://ee17-34-106-122-222.ngrok-free.app/tasks/c3bcd743-fc8b-4c9c-a061-85b455077aeb/final-1.mp4",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1996,
+        240
+      ],
+      "id": "d93dc113-6f14-4610-a8ff-90c00c4c9548",
+      "name": "下载视频1",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $('Payload for Video Gen').item.json.payload.video_subject }}",
+        "regionCode": "HK",
+        "categoryId": "27",
+        "options": {
+          "privacyStatus": "private"
+        }
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        40
+      ],
+      "id": "b179adf6-9c94-44cb-a424-ce5565e60095",
+      "name": "YouTube upload video",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "kxJpWuGQkdyKYUi1",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "=test2",
+        "regionCode": "HK",
+        "categoryId": "15",
+        "options": {
+          "privacyStatus": "private"
+        }
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        2216,
+        240
+      ],
+      "id": "a6c96f60-084b-4fb1-b59e-e349540d13f8",
+      "name": "YouTube_upload_shorts",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "kxJpWuGQkdyKYUi1",
+          "name": "YouTube account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Edit MoneyPrintTurboHost').item.json.MoneyPrintTurboHost }}/api/v1/terms",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"video_subject\": \"{{ $('文案设置').item.json.title }}\",\n  \"video_script\": \"{{ $('文案设置').item.json.content }}\",\n  \"amount\": 5\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        236,
+        540
+      ],
+      "id": "b6bd2fe3-d66d-45eb-827d-657d2b04e297",
+      "name": "generate video keywords",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "efe9c0e9-000d-470a-8a53-e8c6f8ac6564",
+              "name": "MoneyPrintTurboHost",
+              "value": "https://cb94-14-198-200-192.ngrok-free.app",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -424,
+        115
+      ],
+      "id": "b63076f8-03c6-4d08-9b37-47c5c750a104",
+      "name": "Edit MoneyPrintTurboHost"
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"title\": \"abc\",\n  \"content\": \"xxx\",\n  \"images\": [],\n  \"custom_audio\": null,\n  \"bgm\": null\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -864,
+        115
+      ],
+      "id": "e356559f-f4fc-42db-87ad-4d4dee08feb5",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Edit MoneyPrintTurboHost').item.json.MoneyPrintTurboHost }}/api/v1/videos",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"video_subject\": \"{{ $('文案设置').item.json.title }}\",\n  \"video_script\": \"{{ $('文案设置').item.json.content }}\",\n  \"video_terms\": \"{{ $json.data.video_terms }}\",\n  \"video_aspect\": \"9:16\",\n  \"video_concat_mode\": \"random\",\n  \"video_transition_mode\": \"None\",\n  \"video_clip_duration\": 5,\n  \"video_count\": 1,\n  \"video_source\": \"pexels\",\n  \"video_language\": \"\",\n  \"voice_name\": \"zh-CN-YunyangNeural-Male\",\n  \"voice_volume\": 1,\n  \"voice_rate\": 1,\n  \"bgm_type\": \"random\",\n  \"bgm_file\": \"\",\n  \"bgm_volume\": 0.2,\n  \"subtitle_enabled\": true,\n  \"subtitle_position\": \"bottom\",\n  \"custom_position\": 70,\n  \"font_name\": \"STHeitiMedium.ttc\",\n  \"text_fore_color\": \"#FFFFFF\",\n  \"text_background_color\": true,\n  \"font_size\": 60,\n  \"stroke_color\": \"#000000\",\n  \"stroke_width\": 1.5,\n  \"n_threads\": 2,\n  \"paragraph_number\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1116,
+        -60
+      ],
+      "id": "1f223dad-4ff9-475b-bc0a-3e18553bd9e0",
+      "name": "生成视频 music video",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\"payload\":{\n  \"video_subject\": \"{{ $json.title }}\",\n  \"video_script\": \"{{ $json.content }}\",\n  \"video_terms\": \"\",\n  \"video_aspect\": \"9:16\",\n  \"video_concat_mode\": \"random\",\n  \"video_transition_mode\": \"None\",\n  \"video_clip_duration\": 5,\n  \"video_count\": 1,\n  \"video_source\": \"pexels\",\n  \"video_language\": \"\",\n  \"voice_name\": \"zh-CN-YunyangNeural-Male\",\n  \"voice_volume\": 1,\n  \"voice_rate\": 1,\n  \"bgm_type\": \"random\",\n  \"bgm_file\": \"\",\n  \"bgm_volume\": 0.2,\n  \"subtitle_enabled\": true,\n  \"subtitle_position\": \"bottom\",\n  \"custom_position\": 70,\n  \"font_name\": \"STHeitiMedium.ttc\",\n  \"text_fore_color\": \"#FFFFFF\",\n  \"text_background_color\": true,\n  \"font_size\": 60,\n  \"stroke_color\": \"#000000\",\n  \"stroke_width\": 1.5,\n  \"n_threads\": 2,\n  \"paragraph_number\": 1\n}}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -644,
+        115
+      ],
+      "id": "9e9a79a5-c7bb-4bdf-b9c4-b51ec9c5e3ef",
+      "name": "文案设置"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "01a709f1-4e41-4b28-8d49-c31b30a3754a",
+              "leftValue": "={{ $('文案设置').item.json.images }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        440
+      ],
+      "id": "56ee7364-c343-4a21-a06b-15cda954dba5",
+      "name": "If using lo local image",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Edit MoneyPrintTurboHost').item.json.MoneyPrintTurboHost }}/api/v1/musics",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"video_subject\": \"{{ $('文案设置').item.json.title }}\",\n  \"video_script\": \"{{ $('文案设置').item.json.content }}\",\n  \"amount\": 5\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        236,
+        40
+      ],
+      "id": "c4f21c6e-1e20-42a1-a36f-645c7d7209fa",
+      "name": "save_bgm",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $('文案设置').item.json.bgm }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        16,
+        40
+      ],
+      "id": "eeb19350-03b3-4c5a-b567-a909d514dc47",
+      "name": "Read/Write Files from Disk",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('文案设置').first().json.payload;\nconst replacement = $input.all();\n\n// Loop over replacement items and update fields in payload\nfor (const item of replacement) {\n  for (const key in item.json) {\n    if (key !== 'MoneyPrintTurboHost') {\n      payload[key] = item.json[key]; // Replace the value in payload\n    }\n  }\n}\n\n// Prepare the final JSON data\nconst jsonData = { \"payload\": payload };\nreturn [{ json: jsonData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        20
+      ],
+      "id": "6a2ec292-ce7d-4830-a625-bc8cbd9b781e",
+      "name": "Payload for Video Gen"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a1ea732a-9de4-4d2e-9e5d-bb56ab93b376",
+              "leftValue": "={{ $('文案设置').item.json.custom_audio }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -204,
+        -185
+      ],
+      "id": "f60a9926-22c4-4c56-85e8-5c68d1e14c67",
+      "name": "If pure music",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\"bgm_type\" : \"custom\",\n  \"bgm_file\" : \"{{ $('文案设置').item.json.bgm }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        456,
+        40
+      ],
+      "id": "615f0dcb-fa69-4e42-8d7f-7cff6f932c22",
+      "name": "updage bgm payload"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n\"video_terms\" : \"{{ $json.data.video_terms }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        456,
+        540
+      ],
+      "id": "77a8b09c-0144-4350-a70e-ad627284bee1",
+      "name": "updage video source payload1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferInput1"
+            }
+          },
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        676,
+        115
+      ],
+      "id": "f1e19493-7569-4f3d-b058-9e74d7c3df07",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// VARIABLE DEFINITION\nconst video_subject = $('文案设置').item.json.title;\n\n// If using local image\nconst video_source = \"local\";\nconst video_terms = \"\";\nconst video_materials = [\"xxx\",\"yyy\"];\n// else\nconst video_terms = $input.first().json.data.video_terms;\nconst video_source = \"pexels\";\nconst video_materials = [];\n\n// If using local bgm\nconst bgm_type = \"local\";\nconst bgm_file = \"xxx\";\n// else\nconst bgm_type = \"random\";\nconst bgm_file = \"\";\n\n// If no audio\nconst video_script = \"\";\nconst bgm_volume = 0.5;\nconst subtitle_enabled = false;\n// else\nconst video_script = $('文案设置').item.json.content;;\nconst bgm_volume = 0.2;\nconst subtitle_enabled = true;\n  \nconst payload = \n\n//BEGINING - PASTE HERE THE COMFYUI JSON WORKFLOW (and insert the above variable call)\n{\n  \"video_subject\": video_subject,\n  \"video_script\": video_script,\n  \"video_terms\": video_terms,\n  \"video_aspect\": \"9:16\",\n  \"video_concat_mode\": \"random\",\n  \"video_transition_mode\": \"None\",\n  \"video_clip_duration\": 5,\n  \"video_count\": 1,\n  \"video_source\": \"pexels\",\n  \"video_language\": \"\",\n  \"voice_name\": \"zh-CN-YunyangNeural-Male\",\n  \"voice_volume\": 1,\n  \"voice_rate\": 1,\n  \"bgm_type\": \"random\",\n  \"bgm_file\": \"\",\n  \"bgm_volume\": 0.2,\n  \"subtitle_enabled\": true,\n  \"subtitle_position\": \"bottom\",\n  \"custom_position\": 70,\n  \"font_name\": \"STHeitiMedium.ttc\",\n  \"text_fore_color\": \"#FFFFFF\",\n  \"text_background_color\": true,\n  \"font_size\": 60,\n  \"stroke_color\": \"#000000\",\n  \"stroke_width\": 1.5,\n  \"n_threads\": 2,\n  \"paragraph_number\": 1\n}\n//END - PASTE HERE THE COMFYUI JSON WORKFLOW \n;\n\n// replace values\n\n\nconst jsonData = {\"payload\": payload};\nreturn [{ json: jsonData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        215
+      ],
+      "id": "ccbc543e-d442-461b-ab50-db9073d2f14b",
+      "name": "Payload for Video Gen1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"bgm_volume\" : 0,\n\"video_script\" : \".\",\n\"custom_audio_file\": \"{{ $('文案设置').item.json.custom_audio }}\",\n\"subtitle_enabled\" : false,\n\"voice_volume\": 1,\n  \"bgm_type\" : \"\",\n  \"bgm_file\" : \"\"\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        456,
+        -260
+      ],
+      "id": "d48f2c1f-5b9e-4373-8cd2-f111305f1de9",
+      "name": "disable audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = {\n  \"video_source\": \"local\",\n  \"video_terms\": \"\",\n  \"video_materials\": []\n};\n\n// Iterate over the images and add them to video_materials\nfor (const item of $('文案设置').first().json.images) {\n  payload.video_materials.push({\n    \"provider\": \"local\",\n    \"url\": item,\n    \"duration\": 0\n  });\n}\n\n// Return the final payload\nreturn payload;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        456,
+        340
+      ],
+      "id": "b26e1790-11a5-4cb9-8f9f-3d1998e91f00",
+      "name": "updage video source payload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Edit MoneyPrintTurboHost').item.json.MoneyPrintTurboHost }}/api/v1/videos",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.payload }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        140
+      ],
+      "id": "71a59e8f-a84d-49ff-9d79-289e38a1ac7f",
+      "name": "生成视频"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $('文案设置').item.json.bgm }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -260
+      ],
+      "id": "e6d6425c-f012-4bc1-ad15-31dc22733f8a",
+      "name": "Read/Write Files from Disk1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Edit MoneyPrintTurboHost').item.json.MoneyPrintTurboHost }}/api/v1/musics",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"video_subject\": \"{{ $('文案设置').item.json.title }}\",\n  \"video_script\": \"{{ $('文案设置').item.json.content }}\",\n  \"amount\": 5\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        236,
+        -260
+      ],
+      "id": "065edda5-4713-41c1-865a-0c2d96aba9ae",
+      "name": "save_bgm1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0da9703b-63cb-471d-afdb-5878d395cfe3",
+              "leftValue": "={{ $('文案设置').item.json.bgm }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -204,
+        115
+      ],
+      "id": "802331e1-6dd2-469e-b018-cb8fdf235c5b",
+      "name": "If using specify bgm",
+      "alwaysOutputData": false
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "生成视频内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "生成视频内容",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "生成视频内容",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成视频内容": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "查询进度",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "查询进度": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "下载视频",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "下载视频1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "下载视频": {
+      "main": [
+        [
+          {
+            "node": "YouTube upload video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "文案设置",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "文案设置",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "下载视频1": {
+      "main": [
+        [
+          {
+            "node": "YouTube_upload_shorts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate video keywords": {
+      "main": [
+        [
+          {
+            "node": "updage video source payload1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit MoneyPrintTurboHost": {
+      "main": [
+        [
+          {
+            "node": "If pure music",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If using lo local image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If using specify bgm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "文案设置",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "文案设置": {
+      "main": [
+        [
+          {
+            "node": "Edit MoneyPrintTurboHost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If using lo local image": {
+      "main": [
+        [
+          {
+            "node": "updage video source payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "generate video keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_bgm": {
+      "main": [
+        [
+          {
+            "node": "updage bgm payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "save_bgm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload for Video Gen": {
+      "main": [
+        [
+          {
+            "node": "生成视频",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "生成视频 music video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If pure music": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "updage bgm payload": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "updage video source payload1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Payload for Video Gen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Payload for Video Gen1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "disable audio": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "updage video source payload": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "生成视频": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "save_bgm1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_bgm1": {
+      "main": [
+        [
+          {
+            "node": "disable audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If using specify bgm": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When clicking ‘Test workflow’": [
+      {
+        "title": "lofi",
+        "content": "",
+        "images": [
+          "./storage/local_videos/a cat listening to lofi music_2025-05-24T09_45_41.380-04_00.jpeg"
+        ],
+        "custom_audio": "./resource/songs/lofi/spring-lofi-vibes-lofi-music-340019.mp3"
+      }
+    ],
+    "When Executed by Another Workflow": [
+      {
+        "title": "abc",
+        "content": "xxx",
+        "images": [
+          "local_path"
+        ],
+        "custom_audio": "local_path"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6d743ac1680114bb58c78228abbe0c5777e8083112e9a457ff8c3a1c99ec6698"
+  }
+}

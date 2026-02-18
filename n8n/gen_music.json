@@ -1,0 +1,402 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"prompt\": \"a string\"}"
+      },
+      "id": "67625331-d15a-4d30-8767-14437e324f76",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-inference.huggingface.co/models/facebook/musicgen-large",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "inputs",
+              "value": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "67aff63e-17ae-4acd-a4f4-1b43e0c3569e",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bmezB7nQqgpRuZf6",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/tmp/{{ $json.prompt }}_{{ $now }}.jpeg",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "id": "26134072-a4ce-4787-b1cc-c463bcf433af",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.fileName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "id": "e6cc2d4d-d7ca-4a0a-aaea-49410b163cdd",
+      "name": "Read/Write Files from Disk1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -260,
+        -240
+      ],
+      "id": "7dd5840c-6a78-4f99-8df1-2e24b3b9343c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -240
+      ],
+      "id": "6bbfe027-7b80-427a-9abb-35dc295e412c",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "687440fb-15ca-4726-8a6b-91391cf5b440",
+              "name": "File Name",
+              "value": "={{ $json['Video Path'].split(\"=\")[1] }}",
+              "type": "string"
+            },
+            {
+              "id": "d1b9555a-e47d-4af8-85a0-597a7e0adf8a",
+              "name": "Folder name",
+              "value": "background",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        -240
+      ],
+      "id": "0ac94594-da0e-454f-829b-8b7b5223ff3e",
+      "name": "Generate File Name"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=yt-dlp -o \"./{{ $json['Folder name'] }}/{{ $json['File Name'] }}.mp4\" \"{{ $('Limit').item.json['Video Path'] }}\" -f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        620,
+        -240
+      ],
+      "id": "995802bb-3a23-4190-ade6-d016dc5d7b2d",
+      "name": "Download Video"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1062184718,
+          "mode": "list",
+          "cachedResultName": "Background",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=1062184718"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -40,
+        -240
+      ],
+      "id": "aebbf89f-f0f3-465b-852f-0c3732f98563",
+      "name": "Get Video URL",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1062184718,
+          "mode": "list",
+          "cachedResultName": "Background",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=1062184718"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Limit').item.json.row_number }}",
+            "Internal Path": "=./{{ $('Generate File Name').item.json['Folder name'] }}/{{ $('Generate File Name').item.json['File Name'] }}.mp4",
+            "Status": "Downloaded"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Video Path",
+              "displayName": "Video Path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Internal Path",
+              "displayName": "Internal Path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        860,
+        -240
+      ],
+      "id": "deabdd93-4bfe-4893-bd57-a66e4dd04b4f",
+      "name": "Update Background Info",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 下载并储存视频背景并记录在Google Sheet",
+        "height": 240,
+        "width": 1500
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -340,
+        -300
+      ],
+      "typeVersion": 1,
+      "id": "09d81a1d-968c-427f-a883-6530d42a359f",
+      "name": "Sticky Note1"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Video URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Generate File Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate File Name": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Update Background Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video URL": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "prompt": "lofi music that have at least 1 mins"
+      }
+    ]
+  },
+  "meta": {
+    "instanceId": "6d743ac1680114bb58c78228abbe0c5777e8083112e9a457ff8c3a1c99ec6698"
+  }
+}

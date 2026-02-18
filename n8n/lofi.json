@@ -1,0 +1,663 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2020,
+        220
+      ],
+      "id": "40fcf932-e40d-4aea-a1a7-1cc3927493ff",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "n8n-ai-image",
+        "fileName": "data",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        0
+      ],
+      "id": "0717627f-c03a-47a7-8c87-3619ae30a567",
+      "name": "Upload cover photo"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "prompt": "A young woman, headphones on, sketching in a cafe window, rain falling softly outside.",
+        "options": {
+          "size": "1024x1024"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        920,
+        0
+      ],
+      "id": "9168016d-42f7-4aed-b0ca-16635b9d036d",
+      "name": "Generate lofi cover photo",
+      "credentials": {
+        "openAiApi": {
+          "id": "ZHGNTHnIeEIOCbgL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/generate-lofi-video/",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "audio_bucket",
+              "value": "lofi-music-bucket"
+            },
+            {
+              "name": "image_bucket",
+              "value": "n8n-ai-image"
+            },
+            {
+              "name": "final_video_bucket_name",
+              "value": "n8n-lofi-video"
+            },
+            {
+              "name": "video_length",
+              "value": "600"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1420,
+        0
+      ],
+      "id": "2f747fbe-a727-42be-a358-b11b896fdbd0",
+      "name": "Combine photo and audio"
+    },
+    {
+      "parameters": {
+        "bucketName": "n8n-lofi-video",
+        "fileKey": "final_video.mp4"
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        0
+      ],
+      "id": "ee063db5-3150-46d7-b78c-f79e55a12043",
+      "name": "Download video"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the first (and only) item in the workflow\nconst item = $input.all()[0];\n\n// Check if the binary data exists and the 'data' field is available\nif (item.binary && item.binary.data) {\n    // Set the MIME type to 'video/mp4'\n    item.binary.data.mimeType = 'video/mp4';\n}\n\n// Return the modified item\nreturn [item];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        0
+      ],
+      "id": "7ea693ef-4de9-4b13-923e-efe46ad4ef20",
+      "name": "Transform video"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $json.headers.location }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "video/mp4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        220
+      ],
+      "id": "c5cec22b-9f0b-42a9-ac34-1ccfe200e5ca",
+      "name": "Upload to YouTube"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status&uploadType=resumable",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Upload-Content-Type",
+              "value": "video/webm"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "RAW/JSON",
+        "body": "{   \"snippet\": {     \"title\": \"🎧 Chill Lofi Beats – 10 Minutes of Relaxing Music for Focus & Study 🎶\",     \"description\": \"Unwind and stay productive with this 1-hour lofi music mix, perfect for studying, working, or just relaxing. Let the soothing beats and mellow vibes help you stay in the zone. 🎵✨  🔹 Great for: ✅ Studying & Concentration 📚 ✅ Work & Productivity 💻 ✅ Relaxation & Stress Relief ☕  💬 If you enjoy this mix, don’t forget to like, comment, and subscribe for more lofi beats!\",     \"tags\": [\"lofimusic\", \"chillbeats\"]   },   \"status\": {     \"privacyStatus\": \"public\", \"selfDeclaredMadeForKids\": false   }, }",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        540
+      ],
+      "id": "e2f42108-1f83-42f7-a22c-1e0c3fab88e1",
+      "name": "Create YouTube project"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/health",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        0
+      ],
+      "id": "16f388d0-aff1-4bd1-936a-80e774cd3ea5",
+      "name": "Backend server health check"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp-image-generation",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -360
+      ],
+      "id": "5dd8b2b1-95e9-42b9-990e-3980a7f669ac",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G5uqC3jeJ6hj8KrN",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Act like a image generator. When user give you a image prompt use the \"Image Generator\" tool to generate image. Which is connected with you.\n\nAfter the \"Image Generator\" tool work is done, then show the result."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        700,
+        -560
+      ],
+      "id": "8137682d-b4f0-4886-95be-a7c4fb733edd",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "ls"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        -200
+      ],
+      "id": "94465fd8-0993-4fb3-a36a-a3777e8a0c19",
+      "name": "Execute Command",
+      "notes": "Merge all audio files using ffmpeg"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        -560
+      ],
+      "id": "a36c104e-3cba-4e5d-ba8b-2606de1808fc",
+      "name": "When chat message received",
+      "webhookId": "fa06bae8-80b4-4e89-a799-924046d38ac6"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=yt-dlp -o \"./lofi.mp3\" \"https://www.youtube.com/watch?v=v_PCirp8xwY\" --extract-audio\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        -200
+      ],
+      "id": "fa71852e-342b-4147-b464-7ccadc3c5baf",
+      "name": "Download Video"
+    },
+    {
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1900,
+        -180
+      ],
+      "id": "1baf4a47-32b6-4451-a382-a46a506d6f51",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "ZfhuWfbU2Olqf7zb",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "This is a image generator. Pass the image prompt directly as text.",
+        "workflowId": {
+          "__rl": true,
+          "value": "CMGPIgxB6vZasPn5",
+          "mode": "list",
+          "cachedResultName": "gen_image"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "prompt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('prompt', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "prompt"
+          ],
+          "schema": [
+            {
+              "id": "prompt",
+              "displayName": "prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        840,
+        -300
+      ],
+      "id": "9cef751c-3c60-4f62-97a4-acf545345e09",
+      "name": "gen image"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ELQaiP7BQAaCvCqu",
+          "mode": "list",
+          "cachedResultName": "calling MoneyPrintTurbo"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "a",
+            "content": "a",
+            "bgm": "a",
+            "images": "={{ $json.images}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "images",
+              "displayName": "images",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bgm",
+              "displayName": "bgm",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1560,
+        -560
+      ],
+      "id": "17fa4171-38f2-4821-995b-8cc6ac9455b8",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"image\": \"/tmp/a cat listening to lofi music_2025-05-24T09:45:41.380-04:00.jpeg\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        980,
+        -340
+      ],
+      "id": "9a77329c-0766-463a-81e5-e7a1015476f1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/tmp/a cat listening to lofi music_2025-05-24T09:45:41.380-04:00.jpeg",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        -560
+      ],
+      "id": "0f70aaee-3fbb-4bef-bfa7-934f285c2fb1",
+      "name": "Read/Write Files from Disk",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn {\"images\":[\"./storage/local_videos/a cat listening to lofi music_2025-05-24T09_45_41.380-04_00.jpeg\"]}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        -560
+      ],
+      "id": "709b7d2a-ccac-4fed-861d-dfcc8c4e98b7",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Upload to YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload cover photo": {
+      "main": [
+        [
+          {
+            "node": "Combine photo and audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate lofi cover photo": {
+      "main": [
+        [
+          {
+            "node": "Upload cover photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine photo and audio": {
+      "main": [
+        [
+          {
+            "node": "Download video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download video": {
+      "main": [
+        [
+          {
+            "node": "Transform video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform video": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create YouTube project": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Backend server health check": {
+      "main": [
+        [
+          {
+            "node": "Create YouTube project",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate lofi cover photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gen image": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "6d743ac1680114bb58c78228abbe0c5777e8083112e9a457ff8c3a1c99ec6698"
+  }
+}

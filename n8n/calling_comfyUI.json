@@ -1,0 +1,370 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.COMFYUI_HOST }}/prompt ",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $('2. Set-up the ComfyUI workflow').item.json.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "003582b8-feed-44b5-bd26-a1f721080571",
+      "name": "3. ComfyUI HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        265
+      ],
+      "notesInFlow": true,
+      "notes": "Add the image generation workflow to the queue"
+    },
+    {
+      "parameters": {
+        "jsCode": "// VARIABLE DEFINITION\n// 1. Positive prompt used for the image generation. If used you also need to manually edit the COMFYUI JSON workflow and insert the variable. \nconst positiveprompt = $input.first().json.code;\n// 2. Random seed generation. If you want to randomize the image generation process otherwise you will get the same image for a prompt generation \nconst seednumber = Math.floor(Math.random() * 1000000000000000);\nconst prompt = \n\n//BEGINING - PASTE HERE THE COMFYUI JSON WORKFLOW (and insert the above variable call)\n{\n  \"3\": {\n    \"inputs\": {\n      \"seed\": seednumber,\n      \"steps\": 30,\n      \"cfg\": 6,\n      \"sampler_name\": \"uni_pc\",\n      \"scheduler\": \"simple\",\n      \"denoise\": 1,\n      \"model\": [\n        \"48\",\n        0\n      ],\n      \"positive\": [\n        \"6\",\n        0\n      ],\n      \"negative\": [\n        \"7\",\n        0\n      ],\n      \"latent_image\": [\n        \"40\",\n        0\n      ]\n    },\n    \"class_type\": \"KSampler\",\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"6\": {\n    \"inputs\": {\n      \"text\": positiveprompt,\n      \"clip\": [\n        \"38\",\n        0\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Positive Prompt)\"\n    }\n  },\n  \"7\": {\n    \"inputs\": {\n      \"text\": \"色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走\",\n      \"clip\": [\n        \"38\",\n        0\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Negative Prompt)\"\n    }\n  },\n  \"8\": {\n    \"inputs\": {\n      \"samples\": [\n        \"3\",\n        0\n      ],\n      \"vae\": [\n        \"39\",\n        0\n      ]\n    },\n    \"class_type\": \"VAEDecode\",\n    \"_meta\": {\n      \"title\": \"VAE Decode\"\n    }\n  },\n  \"28\": {\n    \"inputs\": {\n      \"filename_prefix\": \"ComfyUI\",\n      \"fps\": 16,\n      \"lossless\": false,\n      \"quality\": 90,\n      \"method\": \"default\",\n      \"images\": [\n        \"8\",\n        0\n      ]\n    },\n    \"class_type\": \"SaveAnimatedWEBP\",\n    \"_meta\": {\n      \"title\": \"SaveAnimatedWEBP\"\n    }\n  },\n  \"37\": {\n    \"inputs\": {\n      \"unet_name\": \"wan2.1_t2v_1.3B_fp16.safetensors\",\n      \"weight_dtype\": \"default\"\n    },\n    \"class_type\": \"UNETLoader\",\n    \"_meta\": {\n      \"title\": \"Load Diffusion Model\"\n    }\n  },\n  \"38\": {\n    \"inputs\": {\n      \"clip_name\": \"umt5_xxl_fp8_e4m3fn_scaled.safetensors\",\n      \"type\": \"wan\",\n      \"device\": \"default\"\n    },\n    \"class_type\": \"CLIPLoader\",\n    \"_meta\": {\n      \"title\": \"Load CLIP\"\n    }\n  },\n  \"39\": {\n    \"inputs\": {\n      \"vae_name\": \"wan_2.1_vae.safetensors\"\n    },\n    \"class_type\": \"VAELoader\",\n    \"_meta\": {\n      \"title\": \"Load VAE\"\n    }\n  },\n  \"40\": {\n    \"inputs\": {\n      \"width\": 832,\n      \"height\": 480,\n      \"length\": 33,\n      \"batch_size\": 1\n    },\n    \"class_type\": \"EmptyHunyuanLatentVideo\",\n    \"_meta\": {\n      \"title\": \"EmptyHunyuanLatentVideo\"\n    }\n  },\n  \"48\": {\n    \"inputs\": {\n      \"shift\": 8,\n      \"model\": [\n        \"37\",\n        0\n      ]\n    },\n    \"class_type\": \"ModelSamplingSD3\",\n    \"_meta\": {\n      \"title\": \"ModelSamplingSD3\"\n    }\n  }\n}\n//END - PASTE HERE THE COMFYUI JSON WORKFLOW \n;\n\nconst jsonData = {\"prompt\": prompt};\nreturn [{ json: jsonData }];"
+      },
+      "id": "3bad08df-ac8d-4385-a280-a6c1e6bbb84d",
+      "name": "2. Set-up the ComfyUI workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        265
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('comfyUI config').item.json.COMFYUI_HOST }}/history/{{ $('3. ComfyUI HTTP Request').item.json.prompt_id }}",
+        "options": {}
+      },
+      "id": "3aa54feb-0287-4290-8511-40c1c20227ab",
+      "name": "4. ComfyUI HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        265
+      ],
+      "notesInFlow": true,
+      "notes": "Check the status of the image generation workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "7232dade-db0e-4b05-802d-6e193ce5136c",
+              "leftValue": "={{ $('4. ComfyUI HTTP Request').item.json[$('3. ComfyUI HTTP Request').item.json.prompt_id].status.status_str }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cbc9aa23-47eb-4922-aad3-8bc0a1fa3cc7",
+      "name": "5. If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        190
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "id": "fb44bc4d-8ac9-4132-8812-85b6f19ad992",
+      "name": "6. Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1420,
+        365
+      ],
+      "webhookId": "c3e88bd7-2d24-4911-82a9-25918e0a2f3f"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('comfyUI config').item.json.COMFYUI_HOST }}/view",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filename",
+              "value": "={{$json[$node[\"3. ComfyUI HTTP Request\"].json.prompt_id].outputs[Object.keys($json[$node[\"3. ComfyUI HTTP Request\"].json.prompt_id].outputs)[0]].images[0].filename}}"
+            },
+            {
+              "name": "subfolder",
+              "value": "={{$json[$node[\"3. ComfyUI HTTP Request\"].json.prompt_id].outputs[Object.keys($json[$node[\"3. ComfyUI HTTP Request\"].json.prompt_id].outputs)[0]].images[0].subfolder}}"
+            },
+            {
+              "name": "type",
+              "value": "={{$json[$node[\"3. ComfyUI HTTP Request\"].json.prompt_id].outputs[Object.keys($json[$node[\"3. ComfyUI HTTP Request\"].json.prompt_id].outputs)[0]].images[0].type}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e708cbb4-c94c-4d5f-933f-1b0275efdb83",
+      "name": "7. ComfyUI HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1420,
+        140
+      ],
+      "notesInFlow": true,
+      "notes": "Retrieve the generated image"
+    },
+    {
+      "parameters": {
+        "jsCode": "// VARIABLE DEFINITION\n// 1. Positive prompt used for the image generation. If used you also need to manually edit the COMFYUI JSON workflow and insert the variable. \nconst positiveprompt = \"A tech-savvy engineer working on a computer with a holographic display, showing AI-generated images and some automation workflow nodes, capturing the essence of integration and automation in a high-tech setting. Accent color should be a warm yellow orange\";\n// 2. Random seed generation. If you want to randomize the image generation process otherwise you will get the same image for a prompt generation \nconst seednumber = Math.floor(Math.random() * 1000000000000000);\nconst prompt = \n\n//BEGINING - PASTE HERE THE COMFYUI JSON WORKFLOW (and insert the above variable call)\n{\n  \"3\": {\n    \"inputs\": {\n      \"seed\": seednumber,\n      \"steps\": 50,\n      \"cfg\": 8,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"normal\",\n      \"denoise\": 1,\n      \"model\": [\n        \"4\",\n        0\n      ],\n      \"positive\": [\n        \"6\",\n        0\n      ],\n      \"negative\": [\n        \"7\",\n        0\n      ],\n      \"latent_image\": [\n        \"5\",\n        0\n      ]\n    },\n    \"class_type\": \"KSampler\",\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"4\": {\n    \"inputs\": {\n      \"ckpt_name\": \"sd_xl_base_1.0.safetensors\"\n    },\n    \"class_type\": \"CheckpointLoaderSimple\",\n    \"_meta\": {\n      \"title\": \"Load Checkpoint\"\n    }\n  },\n  \"5\": {\n    \"inputs\": {\n      \"width\": 512,\n      \"height\": 512,\n      \"batch_size\": 1\n    },\n    \"class_type\": \"EmptyLatentImage\",\n    \"_meta\": {\n      \"title\": \"Empty Latent Image\"\n    }\n  },\n  \"6\": {\n    \"inputs\": {\n      \"text\": positiveprompt,\n      \"clip\": [\n        \"4\",\n        1\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Prompt)\"\n    }\n  },\n  \"7\": {\n    \"inputs\": {\n      \"text\": \"\",\n      \"clip\": [\n        \"4\",\n        1\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Prompt)\"\n    }\n  },\n  \"8\": {\n    \"inputs\": {\n      \"samples\": [\n        \"3\",\n        0\n      ],\n      \"vae\": [\n        \"4\",\n        2\n      ]\n    },\n    \"class_type\": \"VAEDecode\",\n    \"_meta\": {\n      \"title\": \"VAE Decode\"\n    }\n  },\n  \"9\": {\n    \"inputs\": {\n      \"filename_prefix\": \"ComfyUI\",\n      \"images\": [\n        \"8\",\n        0\n      ]\n    },\n    \"class_type\": \"SaveImage\",\n    \"_meta\": {\n      \"title\": \"Save Image\"\n    }\n  }\n}\n//END - PASTE HERE THE COMFYUI JSON WORKFLOW \n;\n\nconst jsonData = {\"prompt\": prompt};\nreturn [{ json: jsonData }];"
+      },
+      "id": "298a7dbe-a2d1-4b8e-8f6c-a194557de249",
+      "name": "2. Set-up the ComfyUI workflow1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9fb604fd-bebf-4996-a43d-35dbf7d9071c",
+              "name": "COMFYUI_HOST",
+              "value": "https://tone-springfield-architect-activated.trycloudflare.com",
+              "type": "string"
+            },
+            {
+              "id": "82b195fe-ca1b-4f9a-8283-1696d3714ab0",
+              "name": "prompt",
+              "value": "={{ $json.prompt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        265
+      ],
+      "id": "00d60af3-e825-4aaf-814d-710e5b3840d5",
+      "name": "comfyUI config"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "CMGPIgxB6vZasPn5",
+          "mode": "list",
+          "cachedResultName": "gen_image"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "prompt": "a man reading a book"
+          },
+          "matchingColumns": [
+            "prompt"
+          ],
+          "schema": [
+            {
+              "id": "prompt",
+              "displayName": "prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        100,
+        -120
+      ],
+      "id": "b66079fd-c092-4cc5-b92b-c9715daa1bdb",
+      "name": "Execute Workflow",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflow": "{\n  \"3\": {\n    \"inputs\": {\n      \"seed\": 263771172464526,\n      \"steps\": 20,\n      \"cfg\": 8,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"normal\",\n      \"denoise\": 1,\n      \"model\": [\n        \"4\",\n        0\n      ],\n      \"positive\": [\n        \"6\",\n        0\n      ],\n      \"negative\": [\n        \"7\",\n        0\n      ],\n      \"latent_image\": [\n        \"5\",\n        0\n      ]\n    },\n    \"class_type\": \"KSampler\",\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"4\": {\n    \"inputs\": {\n      \"ckpt_name\": \"v1-5-pruned-emaonly-fp16.safetensors\"\n    },\n    \"class_type\": \"CheckpointLoaderSimple\",\n    \"_meta\": {\n      \"title\": \"Load Checkpoint\"\n    }\n  },\n  \"5\": {\n    \"inputs\": {\n      \"width\": 512,\n      \"height\": 512,\n      \"batch_size\": 1\n    },\n    \"class_type\": \"EmptyLatentImage\",\n    \"_meta\": {\n      \"title\": \"Empty Latent Image\"\n    }\n  },\n  \"6\": {\n    \"inputs\": {\n      \"text\": \"beautiful scenery nature glass bottle landscape, , purple galaxy bottle,\",\n      \"clip\": [\n        \"4\",\n        1\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Prompt)\"\n    }\n  },\n  \"7\": {\n    \"inputs\": {\n      \"text\": \"text, watermark\",\n      \"clip\": [\n        \"4\",\n        1\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Prompt)\"\n    }\n  },\n  \"8\": {\n    \"inputs\": {\n      \"samples\": [\n        \"3\",\n        0\n      ],\n      \"vae\": [\n        \"4\",\n        2\n      ]\n    },\n    \"class_type\": \"VAEDecode\",\n    \"_meta\": {\n      \"title\": \"VAE Decode\"\n    }\n  },\n  \"9\": {\n    \"inputs\": {\n      \"filename_prefix\": \"ComfyUI\",\n      \"images\": [\n        \"8\",\n        0\n      ]\n    },\n    \"class_type\": \"SaveImage\",\n    \"_meta\": {\n      \"title\": \"Save Image\"\n    }\n  }\n}"
+      },
+      "type": "n8n-nodes-comfyui.comfyui",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -120
+      ],
+      "id": "7c30ed49-483f-45c9-9a5d-0b779cbf873a",
+      "name": "ComfyUI",
+      "credentials": {
+        "comfyUIApi": {
+          "id": "enc1LSGNJ9dEYqo2",
+          "name": "ComfyUI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "positiveprompt"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        265
+      ],
+      "id": "2991407b-f3b6-4906-addf-5ff9bff7814d",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "3. ComfyUI HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "4. ComfyUI HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Set-up the ComfyUI workflow": {
+      "main": [
+        [
+          {
+            "node": "comfyUI config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. ComfyUI HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "5. If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. If": {
+      "main": [
+        [
+          {
+            "node": "7. ComfyUI HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6. Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Wait": {
+      "main": [
+        [
+          {
+            "node": "4. ComfyUI HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comfyUI config": {
+      "main": [
+        [
+          {
+            "node": "3. ComfyUI HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "ComfyUI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "2. Set-up the ComfyUI workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "name": "positiveprompt",
+        "code": "A tech-savvy engineer working on a computer with a holographic display, showing AI-generated images and some automation workflow nodes, capturing the essence of integration and automation in a high-tech setting. Accent color should be a warm yellow orange"
+      }
+    ]
+  },
+  "meta": {
+    "instanceId": "6d743ac1680114bb58c78228abbe0c5777e8083112e9a457ff8c3a1c99ec6698"
+  }
+}

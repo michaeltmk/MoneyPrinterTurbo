@@ -1,0 +1,319 @@
+{
+    "name": "auto-video",
+    "nodes": [
+      {
+        "parameters": {
+          "formTitle": "视频话题",
+          "formDescription": "输入话题，自动生成视频",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "topic"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.formTrigger",
+        "typeVersion": 2.2,
+        "position": [
+          0,
+          0
+        ],
+        "id": "d0ec9563-dbd0-4e3d-afd5-cb966ba0e9b7",
+        "name": "On form submission",
+        "webhookId": "876e1cf0-d23a-4470-a804-c41c81d03a9c"
+      },
+      {
+        "parameters": {
+          "modelName": "models/gemini-2.5-flash-preview-04-17",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          240,
+          220
+        ],
+        "id": "d010a006-e247-4398-8ea7-84b17d063a65",
+        "name": "Google Gemini Chat Model",
+        "credentials": {
+          "googlePalmApi": {
+            "id": "8ZfRG1t1MvH0kjeQ",
+            "name": "Google Gemini(PaLM) Api account 2"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsonSchemaExample": "{\n    \"title\": \"标题\",\n    \"content\": \"内容\"\n}"
+        },
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "typeVersion": 1.2,
+        "position": [
+          400,
+          220
+        ],
+        "id": "49768028-1e1a-4053-97e2-aef795ef41dc",
+        "name": "Structured Output Parser"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "按照要求生成内容",
+          "hasOutputParser": true,
+          "options": {
+            "systemMessage": "=你是一位资深自媒体运营专家兼文案策划师，深谙 YouTube Shorts 平台调性与用户心理。  \n任务：针对“{{ $json.topic }}”主题，撰写一份100–120字的短视频文案，并给出不超过10字的标题。  \n要求：  \n1. 模仿以下结构：  \n   - 【钩子】3秒内抓住注意力  \n   - 【核心要点】3个关键卖点或利益点  \n   - 【CTA】一句行动号召  \n2. 严格输出 JSON，且仅包含 title 和 content 两个字段：  \n{\n  \"title\": \"在此填入视频标题\",\n  \"content\": \"在此填入文案内容\"\n}\n"
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.9,
+        "position": [
+          220,
+          0
+        ],
+        "id": "c0bf5961-300e-4d4b-a956-da5f4665ca35",
+        "name": "生成视频内容"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://host.docker.internal:8080/api/v1/videos",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"video_subject\": \"{{ $json.output.title }}\",\n  \"video_script\": \"{{ $json.output.content }}\",\n  \"video_terms\": \"sport\",\n  \"video_aspect\": \"9:16\",\n  \"video_concat_mode\": \"random\",\n  \"video_transition_mode\": \"None\",\n  \"video_clip_duration\": 5,\n  \"video_count\": 1,\n  \"video_source\": \"pexels\",\n  \"video_materials\": [\n    {\n      \"provider\": \"pexels\",\n      \"url\": \"\",\n      \"duration\": 0\n    }\n  ],\n  \"video_language\": \"\",\n  \"voice_name\": \"zh-CN-YunyangNeural-Male\",\n  \"voice_volume\": 1,\n  \"voice_rate\": 1,\n  \"bgm_type\": \"random\",\n  \"bgm_file\": \"\",\n  \"bgm_volume\": 0.2,\n  \"subtitle_enabled\": true,\n  \"subtitle_position\": \"bottom\",\n  \"custom_position\": 70,\n  \"font_name\": \"STHeitiMedium.ttc\",\n  \"text_fore_color\": \"#FFFFFF\",\n  \"text_background_color\": true,\n  \"font_size\": 60,\n  \"stroke_color\": \"#000000\",\n  \"stroke_width\": 1.5,\n  \"n_threads\": 2,\n  \"paragraph_number\": 1\n} ",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          580,
+          0
+        ],
+        "id": "cd3d11cc-11ef-4b83-94ea-4ca1ca891243",
+        "name": "生成视频"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          800,
+          0
+        ],
+        "id": "a26e30c0-b361-484e-b7d9-1339eb8837d5",
+        "name": "Wait",
+        "webhookId": "038be595-d2b3-479c-9cb0-8c9c16c9977c"
+      },
+      {
+        "parameters": {
+          "url": "=http://host.docker.internal:8080/api/v1/tasks/{{ $json.data.task_id }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1020,
+          0
+        ],
+        "id": "d9b19b9e-82d1-444a-b365-8a6054049532",
+        "name": "查询进度"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "9d0ef9c9-4158-4cfe-b259-bef6752ad6fe",
+                "leftValue": "={{ $json.data.progress }}",
+                "rightValue": 100,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1240,
+          0
+        ],
+        "id": "1a73751b-0d95-42a5-8255-255fd77f3e2b",
+        "name": "If"
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.data.videos[0] }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1460,
+          -100
+        ],
+        "id": "db1529f3-6a18-4716-8250-fc7bcb53f1ec",
+        "name": "下载视频"
+      },
+      {
+        "parameters": {
+          "resource": "video",
+          "operation": "upload",
+          "title": "={{ $('生成视频内容').item.json.output.title }}",
+          "regionCode": "HK",
+          "categoryId": "24",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.youTube",
+        "typeVersion": 1,
+        "position": [
+          1680,
+          -100
+        ],
+        "id": "bc7d20b5-a36c-41c0-95e7-e14cd1dac66c",
+        "name": "YouTube",
+        "credentials": {
+          "youTubeOAuth2Api": {
+            "id": "5arUFAbfFRpprbST",
+            "name": "YouTube account 2"
+          }
+        }
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "生成视频内容",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "生成视频内容",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "生成视频内容",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "生成视频内容": {
+        "main": [
+          [
+            {
+              "node": "生成视频",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "生成视频": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "查询进度",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "查询进度": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If": {
+        "main": [
+          [
+            {
+              "node": "下载视频",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "下载视频": {
+        "main": [
+          [
+            {
+              "node": "YouTube",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "YouTube": {
+        "main": [
+          []
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "068e0c97-aa65-4a6b-aaae-000ce58e767b",
+    "meta": {
+      "templateCredsSetupCompleted": true,
+      "instanceId": "842e089ebeca6cebf71676a6a2ba2cddf5a9039b264a25f6a7ee9230b3376b1b"
+    },
+    "id": "8Y8RRKFJRB6U0Dkg",
+    "tags": []
+  }

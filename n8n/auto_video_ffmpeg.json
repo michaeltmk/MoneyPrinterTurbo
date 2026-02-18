@@ -1,0 +1,1135 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "生成文字段落",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=生成一个关于{{ $('On form submission').item.json['Video Topic'] }}内容，主题要比较发散，并且内容有创意\n\n要求是一个100字以内的【段落】，并给这个段落取一个【标题】\n\n输出格式\n{\n    \"Topic\": \"标题\",\n    \"Transcript\": \"段落\"\n}\n  "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        1440,
+        100
+      ],
+      "id": "4857c320-227e-4059-a20e-ec3a4ce411b7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        300
+      ],
+      "id": "ee5a556b-d2a5-4a4a-aca0-7faa186185a5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G5uqC3jeJ6hj8KrN",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n    \"Topic\": \"标题\",\n    \"Transcript\": \"段落\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1700,
+        300
+      ],
+      "id": "34b9f0c9-dd6a-4143-8271-80278282cd42",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "formTitle": "Topic",
+        "formDescription": "Video Topic",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Video Topic"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        80
+      ],
+      "id": "20c52798-303c-4e33-a8fc-ba13eb528c8d",
+      "name": "On form submission",
+      "webhookId": "2f43852d-0b19-43a2-9e9e-901c1fecd696"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1220,
+        80
+      ],
+      "id": "c424eb63-61dd-448a-8de8-c725eb6c710c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple way to create an array with 10 empty objects\nconst numberOfRuns = 10;\nconst items = Array.from({ length: numberOfRuns }).map((_, index) => ({ runNumber: index + 1 }));\nreturn items;\n\n// Alternatively, just return an array of numbers:\n// return Array.from({length: 10}).map((_, i) => i);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        80
+      ],
+      "id": "483f4fdb-f691-4a78-8122-a2d3e76a1f28",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        540
+      ],
+      "id": "6ddbeb22-b31f-4342-9c0c-aa1b17dcc0dc",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Video Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Loop Over Items').item.json.runNumber+1 }}",
+            "Title": "={{ $json.output.Topic }}",
+            "Content": "={{ $json.output.Transcript }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Content",
+              "displayName": "Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Output Path",
+              "displayName": "Output Path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Youtube Link ",
+              "displayName": "Youtube Link ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Post Time",
+              "displayName": "Post Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1900,
+        100
+      ],
+      "id": "22ec2997-ec10-4da9-9df2-430b5aeac965",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1220,
+        540
+      ],
+      "id": "7f3a84ec-441f-46ba-8ab3-9ce800fde088",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "687440fb-15ca-4726-8a6b-91391cf5b440",
+              "name": "File Name",
+              "value": "={{ $json['Video Path'].split(\"=\")[1] }}",
+              "type": "string"
+            },
+            {
+              "id": "d1b9555a-e47d-4af8-85a0-597a7e0adf8a",
+              "name": "Folder name",
+              "value": "background",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        540
+      ],
+      "id": "1de873f6-7566-4536-ad6c-76a0d1a874cc",
+      "name": "Generate File Name"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=yt-dlp -o \"./{{ $json['Folder name'] }}/{{ $json['File Name'] }}.mp4\" \"{{ $('Limit').item.json['Video Path'] }}\" -f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1660,
+        540
+      ],
+      "id": "9ccb9558-b3ff-4c73-a719-af0c353e2c92",
+      "name": "Download Video"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1062184718,
+          "mode": "list",
+          "cachedResultName": "Background",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=1062184718"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1000,
+        540
+      ],
+      "id": "9d6c5080-cef3-4009-b386-31f061415d0c",
+      "name": "Get Video URL",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1062184718,
+          "mode": "list",
+          "cachedResultName": "Background",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=1062184718"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Limit').item.json.row_number }}",
+            "Internal Path": "=./{{ $('Generate File Name').item.json['Folder name'] }}/{{ $('Generate File Name').item.json['File Name'] }}.mp4",
+            "Status": "Downloaded"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Video Path",
+              "displayName": "Video Path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Internal Path",
+              "displayName": "Internal Path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1900,
+        540
+      ],
+      "id": "422b88b5-1c4b-416d-9e32-e5ece4e58a35",
+      "name": "Update Background Info",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Video Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1000,
+        840
+      ],
+      "id": "d128c04a-2e92-4bb9-bf3c-2ce824b0b1b6",
+      "name": "Video Transcript",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1220,
+        840
+      ],
+      "id": "ed12172a-2498-470a-9fc4-0de108f3d4cd",
+      "name": "Limit1"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=./final.mp4",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        1280
+      ],
+      "id": "6635a3e4-c741-4205-b48e-0d70aefb6617",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        840
+      ],
+      "id": "b629563a-ac2d-48d5-a6b6-ed3795ff56e8",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fontColor = \"white\";\nconst fontFile = \"./fonts/HanyiSentyPagoda Regular.ttf\";\nconst fontSize = 60;\nconst lineHeightMultiplier = 1.1;\nconst videoWidth = 1080;\n\n// For Chinese, each character is generally square, so we use a factor of 1.0\nconst avgCharWidth = fontSize * 1.0;\n// reductionFactor to control maximum characters per line (adjust as needed)\nconst reductionFactor = 0.8;\nconst maxCharsPerLine = Math.floor((videoWidth / avgCharWidth) * reductionFactor);\n\n// Get the full transcript as a string (without splitting by spaces)\nconst text = $('Video Transcript').first().json['Content'];\nconst lines = [];\nlet currentLine = '';\n\n// Process each character individually\nfor (let i = 0; i < text.length; i++) {\n  currentLine += text[i];\n  if (currentLine.length >= maxCharsPerLine) {\n    lines.push(currentLine);\n    currentLine = '';\n  }\n}\nif (currentLine) lines.push(currentLine);\n\nconst totalHeight = lines.length * fontSize * lineHeightMultiplier;\nconst lineHeight = fontSize * lineHeightMultiplier;\n\nconst drawText = lines.map((line, index) => {\n  const y = `(h/2)-${Math.ceil(totalHeight / 2)}+${index * lineHeight}`;\n  return `drawtext=text='${line}':fontsize=${fontSize}:fontcolor=${fontColor}:x=(w-tw)/2:y=${y}:fontfile=${fontFile}`;\n}).join(',');\n\nreturn {\n  json: {\n    drawText\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        840
+      ],
+      "id": "b539a734-7331-4d2f-9669-f7979ceb90b8",
+      "name": "Draw Text"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1062184718,
+          "mode": "list",
+          "cachedResultName": "Background",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=1062184718"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Downloaded"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1000,
+        1060
+      ],
+      "id": "b0ddcdc3-8742-4927-a2cc-9c7c558c15fd",
+      "name": "Video Path",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all incoming items\nconst items = $input.all();\n\n// Generate a random index between 0 and the number of items minus 1\nconst randomIndex = Math.floor(Math.random() * items.length);\n\n// Return the randomly selected item as an array\nreturn [items[randomIndex]];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        1060
+      ],
+      "id": "80ee15bc-6b1e-4070-829a-f7cdde4054bf",
+      "name": "Random Pick Video"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {{ $json['Internal Path'] }}\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        1060
+      ],
+      "id": "b5189ff6-3bd0-4fce-9227-979103a6bfd7",
+      "name": "Video Length"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=ffmpeg -ss {{ Math.floor(Math.random() * Math.floor($json.stdout / 10)) *10 }} -i \"{{ $('Random Pick Video').item.json['Internal Path'] }}\" \\-filter_complex \"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[vid];\ncolor=black@0.3:size=1080x1920:d=10[bg];[vid][bg]overlay[bgvid];[bgvid]{{ $('Draw Text').item.json.drawText }}[outv];\n[0:a]volume=1.2[aout]\" \\\n    -map \"[outv]\" \\\n    -map \"[aout]\" \\\n    -t 10 -aspect 9:16 -c:v libx264 -c:a aac -shortest \\\n\"./final.mp4\" -y\n\n\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        1280
+      ],
+      "id": "3be59072-1f71-4d8c-9181-042b46556e3f",
+      "name": "Generate Video"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status&uploadType=resumable\n",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Upload-Content-Type",
+              "value": "video/webm"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "RAW/JSON",
+        "body": "={\n  \"snippet\": {\n    \"title\": \"{{ $('Limit1').item.json.Title }}\",\n    \"description\": \"{{ $('Limit1').item.json['Transcript '] }}\",\n    \"defaultLanguage\": \"en\",\n    \"defaultAudioLanguage\": \"en\"\n  },\n  \"status\": {\n    \"privacyStatus\": \"public\",\n    \"license\": \"youtube\",\n    \"embeddable\": true,\n    \"publicStatsViewable\": true,\n    \"madeForKids\": false\n  }\n}\n",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        1280
+      ],
+      "id": "2ef6762f-6c55-4207-b88f-87ef1b3b1899",
+      "name": "YouTube Placeholder",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "kxJpWuGQkdyKYUi1",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('YouTube Placeholder').item.json.headers.location }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "video/webm"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        1280
+      ],
+      "id": "73e69bff-e097-4959-a78e-2612bfbf0a0e",
+      "name": "YouTube Upload",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "kxJpWuGQkdyKYUi1",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y",
+          "mode": "list",
+          "cachedResultName": "VideoJZ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Video Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W12IBNKlDmKMH7856vrIs0cIYzFi78p7yt3PTsF9d9Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Limit1').item.json.row_number }}",
+            "Status": "Uploaded",
+            "Post Time": "={{$now}}",
+            "Youtube Link ": "=https://www.youtube.com/watch?v={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Content",
+              "displayName": "Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Youtube Link ",
+              "displayName": "Youtube Link ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Post Time",
+              "displayName": "Post Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1880,
+        1280
+      ],
+      "id": "249a62de-ee5c-43f4-826a-6c4147dd7659",
+      "name": "Updata Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUAFu9qajgnlexjV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Jay's AI Lab\n\n### AI短视频生成工作流\nhttps://www.youtube.com/watch?v=f_jVxg3s0Kw\n\n### MCP AI 智能体工作流\nhttps://www.youtube.com/watch?v=h1nBLKsN6CA\n\n### RAG AI 智能知识库工作流\nhttps://www.youtube.com/watch?v=TKdxIZuHVEg&t=1s\n\n### Crawl4AI 网站爬虫工作流\nhttps://www.youtube.com/watch?v=eZdnBTjiv04&t=684s\n\n### ChatGPT 4o 图片生成功能用法脑图\nhttps://www.youtube.com/watch?v=7Io5Pe7cnbA\n\n\n完全免费！自动化生成上传短视频工作流！零成本打造爆款频道！\nhttps://jays-ai-lab.super.site/完全免费自动化生成上传短视频工作流零成本打造爆款频道",
+        "height": 620,
+        "width": 620,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "ff6e62a2-53b0-44f8-a2b0-d41219f0aa3a",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## 生成视频文字并储存在Google Sheet",
+        "height": 440,
+        "width": 1500
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        700,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "56b8b83e-928f-4791-92d0-5bf32e73830c",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## 下载并储存视频背景并记录在Google Sheet",
+        "height": 240,
+        "width": 1500
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        700,
+        480
+      ],
+      "typeVersion": 1,
+      "id": "07a0d3b4-12d7-466f-a562-c3e00a6a1533",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## 生成视频并上传到YouTube",
+        "height": 700,
+        "width": 1500
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        700,
+        760
+      ],
+      "typeVersion": 1,
+      "id": "8ac57db4-c6e3-4a81-85e3-1efe44e5c48f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "command": "mkdir -p /home/node/fonts && curl -L -o \"/home/node/fonts/HanyiSentyPagoda Regular.ttf\" \"https://www.onlinewebfonts.com/download/7f338110a1eb1b6072d3dfe7d97ccd99\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        840
+      ],
+      "id": "e2072cad-0895-45b0-804d-bb03d4f9cc32",
+      "name": "Download TTF"
+    }
+  ],
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Video URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Generate File Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate File Name": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Update Background Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video URL": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Transcript": {
+      "main": [
+        [
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "Download TTF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "YouTube Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Video Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draw Text": {
+      "main": [
+        [
+          {
+            "node": "Video Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Path": {
+      "main": [
+        [
+          {
+            "node": "Random Pick Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Random Pick Video": {
+      "main": [
+        [
+          {
+            "node": "Video Length",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Length": {
+      "main": [
+        [
+          {
+            "node": "Generate Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Video": {
+      "main": [
+        [
+          {
+            "node": "YouTube Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube Upload": {
+      "main": [
+        [
+          {
+            "node": "Updata Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download TTF": {
+      "main": [
+        [
+          {
+            "node": "Draw Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "On form submission": [
+      {
+        "Video Topic": "成功学",
+        "submittedAt": "2025-04-06T08:57:59.366-04:00",
+        "formMode": "test"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6d743ac1680114bb58c78228abbe0c5777e8083112e9a457ff8c3a1c99ec6698"
+  }
+}

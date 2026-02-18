@@ -1,0 +1,270 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "book",
+        "formDescription": "upload a book",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "book",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".txt,pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8b5c9aa2-d987-4c36-93a2-c9a2b1d8fb26",
+      "name": "On form submission",
+      "webhookId": "c9e61e6e-668c-4dc1-b023-a83ade39d76b"
+    },
+    {
+      "parameters": {
+        "mode": "insert"
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "beb93ac3-604c-42fc-949a-fe3d725a70a6",
+      "name": "Simple Vector Store"
+    },
+    {
+      "parameters": {
+        "model": "bge-m3:567m"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        200,
+        220
+      ],
+      "id": "d39936cb-f7f3-434f-abae-b9c0f3c398ea",
+      "name": "Embeddings Ollama"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        360,
+        220
+      ],
+      "id": "19d93ef7-777a-4603-b2f4-2eeaaafeb9a5",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        460,
+        440
+      ],
+      "id": "50bcda70-12dc-45d0-b2ce-40b93a205d3b",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "maxItems": 2
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        580,
+        0
+      ],
+      "id": "01100aee-0502-4145-86d1-f37f7a057487",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        800,
+        0
+      ],
+      "id": "a17bf843-d16d-44a0-95a2-29b702762c7d",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "command": "=python f5_tts.py --text \"{{ $json.pageContent }}\" --ref \"/home/node/voice.wav\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        40
+      ],
+      "id": "bcf1e427-73e9-47a8-bd43-8facae6b8c5c",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1240,
+        60
+      ],
+      "id": "41954af2-5732-4da4-ae9d-de68af586449",
+      "name": "Wait",
+      "webhookId": "d151166e-6b41-4e18-9b13-a0127481cb27"
+    },
+    {
+      "parameters": {
+        "content": "import shutil\nimport sys\nfrom datetime import datetime\nimport argparse\nfrom gradio_client import Client, handle_file\n\n# 命令行参数解析\nparser = argparse.ArgumentParser(description=\"语音合成脚本\")\nparser.add_argument(\"--text\", type=str, required=True, help=\"要合成的文本\")\nparser.add_argument(\"--ref\", type=str, required=True, help=\"参考音频文件路径\")\nargs = parser.parse_args()\n\ntext = args.text\nref_audio_path = args.ref\n\n# 当前时间格式化为文件名\ntimestamp = datetime.now().strftime(\"%Y%m%d_%H%M%S\")\noutput_filename = f\"cloned_voice_{timestamp}.wav\"\n\n# 初始化客户端\nclient = Client(\"mrfakename/E2-F5-TTS\")\n\n# 发起预测请求\nresult = client.predict(\n    handle_file(ref_audio_path), # 参考声音样本，用于克隆声音特征\n    \"\",                          # 与参考音频对应的文字内容（可留空，主要用于语音识别对齐）\n    text,                        # 要合成的文字（输出语音内容）\n    False,                       # 是否去除参考音频中的静音段，设为 True 有助于提取更纯净的语音特征\n    0.15,                        # 控制帧之间的过渡混合时间，过大可能会导致模糊和回音感，推荐在 0.08～0.15 之间\n    32,                          # 推理步骤数（Number of Forward Evaluation steps），越大越清晰但速度越慢，推荐 32～64\n    1.0,                         # 语音速度，1.0 表示正常速度，0.8 表示稍慢，1.2 表示稍快\n    api_name=\"/basic_tts\"\n)\n\naudio_path, spectrogram_url, transcript = result\n\n# 保存音频文件\nshutil.copy(audio_path, output_filename)\n\nprint(f\"语音克隆完成，已保存为 {output_filename}\")\nprint(\"实际参考转录：\", transcript)",
+        "height": 420,
+        "width": 900
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -640
+      ],
+      "id": "1f2267cb-58b6-4700-afc4-c1e3ce2a3664",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "n8n神操作来了！一本电子书，自动生成高质量有声书！能克隆任意音色！完全免费的AI工作流！\n\nhttps://www.youtube.com/watch?v=xDWRfvQMBDs"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        -160
+      ],
+      "id": "18f4ef04-be3f-4777-83c7-080e401b5106",
+      "name": "Sticky Note1"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "6d743ac1680114bb58c78228abbe0c5777e8083112e9a457ff8c3a1c99ec6698"
+  }
+}

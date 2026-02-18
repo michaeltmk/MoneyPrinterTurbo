@@ -18,7 +18,19 @@ services:
       dockerfile: Dockerfile
     container_name: "moneyprinterturbo-api"
     ports:
-      - "8080:8080"
+      - "8081:8081"
     command: [ "python3", "main.py" ]
     volumes: *common-volumes
     restart: always
+  # n8n:
+  #   image: docker.n8n.io/n8nio/n8n:1.91.3
+  #   container_name: "n8n"
+  #   ports:
+  #     - "5678:5678"
+  #   # environment:
+  #   #   - N8N_BASIC_AUTH_ACTIVE=true
+  #   #   - N8N_BASIC_AUTH_USER=admin
+  #   #   - N8N_BASIC_AUTH_PASSWORD=admin
+  #   volumes:
+  #     - ./n8n_data:/home/node/.n8n
+  #   restart: always

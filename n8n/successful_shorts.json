@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 生成视频文字并储存在Google Sheet",
+        "height": 440,
+        "width": 1500
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        40,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "23a6db7c-eb66-449b-b669-64dff5e0df2a",
+      "name": "Sticky Note"
+    }
+  ],
+  "connections": {},
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6d743ac1680114bb58c78228abbe0c5777e8083112e9a457ff8c3a1c99ec6698"
+  }
+}
